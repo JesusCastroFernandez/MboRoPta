@@ -1,0 +1,64 @@
+from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, Aer, execute
+import numpy as np
+
+def quantum_quadratic_programming(obj_function, constraint_matrix, num_iterations):
+    num_variables = len(obj_function)
+
+    # Crear los registros cuánticos y clásicos
+    qr = QuantumRegister(num_variables)
+    cr = ClassicalRegister(num_variables)
+    qc = QuantumCircuit(qr, cr)
+
+    # Inicializar el estado cuántico
+    qc.h(qr)
+
+    # Aplicar el algoritmo de aproximación adiabática
+    for _ in range(num_iterations):
+        # Aplicar el operador de restricción
+        for i in range(num_variables):
+            for j in range(num_variables):
+                if i != j:
+                    qc.cx(qr[i], qr[j])
+
+        # Aplicar el operador de costo
+        for i in range(num_variables):
+            qc.rz(obj_function[i], qr[i])
+
+        # Aplicar el operador de restricción
+        for i in range(num_variables):
+            for j in range(num_variables):
+                if constraint_matrix[i][j] != 0:
+                    qc.cx(qr[i], qr[j])
+
+    qc.measure(qr, cr)
+
+    # Ejecutar el circuito cuántico en un simulador local
+    simulator = Aer.get_backend('qasm_simulator')
+    job = execute(qc, simulator, shots=1)
+    result = job.result()
+    counts = result.get_counts(qc)
+    bitstring = list(counts.keys())[0]
+
+    # Obtener el resultado de la programación cuadrática cuántica
+    optimized_variables = np.array([int(bit) for bit in bitstring])
+
+    return optimized_variables
+
+# Función objetivo de ejemplo
+obj_function = [1, 2, -1]
+
+# Matriz de restricciones de ejemplo
+constraint_matrix = [
+    [0, 1, 1],
+    [1, 0, 0],
+    [1, 0, 0]
+]
+
+# Número de iteraciones del algoritmo
+num_iterations = 1000
+
+# Obtener las variables optimizadas para la programación cuadrática cuántica
+optimized_variables = quantum_quadratic_programming(obj_function, constraint_matrix, num_iterations)
+
+# Imprimir el resultado de la optimización
+print("Optimized variables:", optimized_variables)
